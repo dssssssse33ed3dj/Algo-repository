@@ -3,38 +3,54 @@
 Заполните тела функций. Проверка из корня репозитория:
 
     pytest practice/05-fixed-sliding-window -q
-
-В обеих задачах нет срезов и вызовов sum внутри цикла: окно пересчитывается
-сдвигом — плюс пришедший элемент, минус ушедший.
 """
 
 
 def step_score(steps, k, lower, upper):
-    """Задача 1. Очки фитнес-браслета (LeetCode 1176).
+    """Задача 1. Очки фитнес-браслета (LeetCode 1176)."""
+    n = len(steps)
+    if n < k:
+        return 0
+        
 
-    steps[i] — число шагов в день i. Браслет оценивает каждые k дней подряд:
-    сумма шагов меньше lower — минус одно очко, больше upper — плюс одно очко,
-    от lower до upper включительно — ноль. Вернуть сумму очков по всем окнам.
-
-    1 <= k <= len(steps), lower <= upper.
-    Список steps не меняется. Время O(n).
-    Пример: step_score([6, 5, 0, 0], 2, 1, 5) == 0.
-    """
-    raise NotImplementedError
+    current_sum = sum(steps[:k])
+    score = 0
+    
+    if current_sum < lower:
+        score -= 1
+    elif current_sum > upper:
+        score += 1
+        
+    for i in range(k, n):
+        current_sum += steps[i] - steps[i - k]
+        if current_sum < lower:
+            score -= 1
+        elif current_sum > upper:
+            score += 1
+            
+    return score
 
 
 def decrypt(code, k):
-    """Задача 2. Кодовый замок (LeetCode 1652).
-
-    code — числа, записанные по кругу: после последнего снова идёт первый.
-    Каждое число заменяется одновременно:
-      k > 0 — суммой k следующих чисел;
-      k < 0 — суммой |k| предыдущих чисел;
-      k == 0 — нулём.
-    Вернуть новый список, code не меняется.
-
-    В code хотя бы одно число, |k| < len(code).
-    Время O(n), память O(1) кроме ответа.
-    Пример: decrypt([5, 7, 1, 4], 3) == [12, 10, 16, 13].
-    """
-    raise NotImplementedError
+    """Задача 2. Кодовый замок (LeetCode 1652)."""
+    n = len(code)
+    if k == 0:
+        return [0] * n
+        
+    res = [0] * n
+    
+    if k > 0:
+        window_sum = sum(code[1:k+1])
+        for i in range(n):
+            res[i] = window_sum
+            window_sum -= code[(i + 1) % n]
+            window_sum += code[(i + k + 1) % n]
+    else:
+        K = -k
+        window_sum = sum(code[n-K:])
+        for i in range(n):
+            res[i] = window_sum
+            window_sum -= code[(i - K) % n]
+            window_sum += code[i % n]
+            
+    return res

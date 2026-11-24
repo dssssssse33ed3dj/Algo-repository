@@ -23,7 +23,8 @@ def blob_hash(data: bytes) -> str:
 
     Подсказка: hashlib.sha1(байты).hexdigest().
     """
-    raise NotImplementedError
+    header = f"blob {len(data)}\0".encode('utf-8')
+    return hashlib.sha1(header + data).hexdigest()
 
 
 if __name__ == "__main__":

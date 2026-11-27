@@ -52,31 +52,42 @@ def plot_linear(series):
     fig.savefig(SCREENS / "01-lineinyi.png", dpi=120, bbox_inches="tight")
     plt.close(fig)
 
-
 def plot_log_log(series):
-    """График 2: те же линии, но обе оси логарифмические.
-
-    На таком графике функция O(n) — прямая с наклоном 1, функция O(n²) —
-    прямая с наклоном 2: вдвое круче.
-
-    TODO: скопируйте тело plot_linear и добавьте ax.set_xscale("log")
-    и ax.set_yscale("log"). Свой заголовок, файл — SCREENS / "02-log-log.png".
-    """
-    # TODO
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for name, (sizes, times) in series.items():
+        ax.plot(sizes, times, marker="o", label=name)
+    
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    
+    ax.set_title("Время от размера входа (лог-лог)")
+    ax.set_xlabel("n, элементов (log)")
+    ax.set_ylabel("время, с (log)")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    fig.savefig(SCREENS / "02-log-log.png", dpi=120, bbox_inches="tight")
+    plt.close(fig)
 
 
 def plot_k(ks, times):
-    """График 3: время window_sum_slices от k при постоянном n.
-
-    TODO: одна линия, по оси x — k, по оси y — время. Подписи осей
-    и заголовок свои, файл — SCREENS / "03-ot-k.png".
-    """
-    # TODO
-
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(ks, times, marker="o", color="purple")
+    
+    ax.set_title("Время window_sum_slices от k")
+    ax.set_xlabel("k, длина окна")
+    ax.set_ylabel("время, с")
+    ax.grid(True, alpha=0.3)
+    fig.savefig(SCREENS / "03-ot-k.png", dpi=120, bbox_inches="tight")
+    plt.close(fig)
 
 if __name__ == "__main__":
-    SCREENS.mkdir(exist_ok=True)
-    plot_linear(read_results())
-    plot_log_log(read_results())
-    plot_k(*read_k_results())
-    print("Графики сохранены в", SCREENS)
+    # Читаем данные
+    series = read_results()
+    ks, times = read_k_results()
+    
+    # Строим и сохраняем графики
+    plot_linear(series)
+    plot_log_log(series)
+    plot_k(ks, times)
+    
+    print("Все 3 графика сохранены в папку screens")

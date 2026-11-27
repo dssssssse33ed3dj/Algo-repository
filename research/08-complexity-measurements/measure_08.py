@@ -29,100 +29,98 @@ HERE = Path(__file__).parent
 SIZES = [1_000, 2_000, 4_000, 8_000, 16_000]
 K_SERIES_N = 10_000
 K_SERIES = [1, 1_000, 2_500, 5_000, 7_500, 9_000, 10_000]
-
-
 def make_numbers(n, seed=8):
-    """Вернуть список из n разных целых чисел в случайном порядке.
-
-    Числа берутся из диапазона от 0 до 10·n. При одном и том же seed
-    список всегда одинаковый, поэтому замер можно повторить.
-
-    Подсказка: random.Random(seed) — свой генератор, у него есть метод sample.
-    """
-    # TODO
-    raise NotImplementedError
-
-
-def make_intervals(n, seed=8):
-    """Вернуть n интервалов [начало, конец]; конец больше начала на 0–5."""
     rng = random.Random(seed)
-    intervals = []
-    for _ in range(n):
-        start = rng.randrange(10 * n)
-        intervals.append([start, start + rng.randint(0, 5)])
-    return intervals
+    return rng.sample(range(10 * n), n)
 
 
 def measure_time(func, *args, repeats=5):
-    """Вызвать func(*args) repeats раз и вернуть медиану времени в секундах.
-
-    Так же, как в программе measurements.py с занятия 4: perf_counter до
-    и после вызова, время каждого вызова в список, в ответ — медиана.
-    """
-    # TODO
-    raise NotImplementedError
+    times = []
+    for _ in range(repeats):
+        start = perf_counter()
+        func(*args)
+        end = perf_counter()
+        times.append(end - start)
+    return median(times)
 
 
 def growth_ratios(times):
-    """Во сколько раз выросло время при каждом удвоении n.
-
-    growth_ratios([1.0, 2.0, 8.0]) == [2.0, 4.0]
-    Для пустого списка и списка из одного времени ответ — пустой список.
-    """
-    # TODO
-    raise NotImplementedError
+    return [times[i] / times[i - 1] for i in range(1, len(times))]
 
 
 def measure_k_series(n, ks, repeats=3):
-    """Время window_sum_slices на одних и тех же n числах при разных k.
+    nums = make_numbers(n)
+    results = []
+    for k in ks:
+        seconds = measure_time(window_sum_slices, nums, k, repeats=repeats)
+        results.append((k, seconds))
+    return results
 
-    Вернуть список пар (k, секунды) в том же порядке, что ks.
-    Данные готовятся один раз, до замеров: make_numbers(n).
-    """
-    # TODO
-    raise NotImplementedError
+# Функции замера для каждой алгоритмической функции 
 
+def measure_window_sum_slices(n):
+    """Замер window_sum_slices. k = n // 2, чтобы увидеть квадратичный рост."""
+    nums = make_numbers(n)
+    k = n // 2
+    return measure_time(window_sum_slices, nums, k)
 
-# Что измеряем: имя в таблице, функция, как построить вход размера n,
-# сколько раз повторить замер. Быстрые функции повторяем чаще: их время —
-# доли миллисекунды, и одиночный замер сильно скачет.
-EXPERIMENTS = [
-    ("window_sum_slices", window_sum_slices, lambda n: (make_numbers(n), n // 2), 3),
-    ("window_sum_shift", window_sum_shift, lambda n: (make_numbers(n), n // 2), 15),
-    ("merge_intervals", merge_intervals, lambda n: (make_intervals(n),), 15),
-    ("unique_in_order_list", unique_in_order_list, lambda n: (make_numbers(n),), 3),
-    ("unique_in_order_set", unique_in_order_set, lambda n: (make_numbers(n),), 15),
-]
+def measure_window_sum_shift(n):
+    """Замер window_sum_shift. k = n // 2, сложность не зависит от k."""
+    nums = make_numbers(n)
+    k = n // 2
+    return measure_time(window_sum_shift, nums, k)
 
+def measure_merge_intervals(n):
+    """Замер merge_intervals. Генерируем n случайных интервалов."""
+    rng = random.Random(8)
+    intervals = []
+    for _ in range(n):
+        start = rng.randint(0, 10 * n)
+        end = start + rng.randint(0, 100)  # длина от 0 до 100
+        intervals.append([start, end])
+    return measure_time(merge_intervals, intervals)
+
+def measure_unique_in_order_list(n):
+    """Замер unique_in_order_list. Данные уникальны (худший случай)."""
+    items = make_numbers(n)
+    return measure_time(unique_in_order_list, items)
+
+def measure_unique_in_order_set(n):
+    """Замер unique_in_order_set. Данные уникальны."""
+    items = make_numbers(n)
+    return measure_time(unique_in_order_set, items)
 
 def main():
-    rows = []
-    print(f"{'функция':<22}" + "".join(f"{n:>12}" for n in SIZES))
-    for name, func, make_args, repeats in EXPERIMENTS:
-        times = []
-        for n in SIZES:
-            args = make_args(n)
-            seconds = measure_time(func, *args, repeats=repeats)
-            times.append(seconds)
-            rows.append((name, n, seconds))
-        print(f"{name:<22}" + "".join(f"{t:>12.6f}" for t in times))
-        print(f"{'  рост при удвоении':<22}{'':>12}" + "".join(f"{r:>12.2f}" for r in growth_ratios(times)))
+    funcs = [
+        ("window_sum_slices", measure_window_sum_slices),
+        ("window_sum_shift", measure_window_sum_shift),
+        ("merge_intervals", measure_merge_intervals),
+        ("unique_in_order_list", measure_unique_in_order_list),
+        ("unique_in_order_set", measure_unique_in_order_set),
+    ]
 
-    with open(HERE / "results_08.csv", "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
+    results = {}
+    for name, func in funcs:
+        times = [func(n) for n in SIZES]
+        results[name] = times
+
+    # Сохранение в CSV (правильный формат для plot_08.py)
+    with open(HERE / "results_08.csv", "w", newline="") as f:
+        writer = csv.writer(f)
         writer.writerow(["function", "n", "seconds"])
-        writer.writerows(rows)
+        for name, _ in funcs:
+            for i, n in enumerate(SIZES):
+                writer.writerow([name, n, results[name][i]])
 
-    print(f"\nwindow_sum_slices при n = {K_SERIES_N}:")
-    k_rows = measure_k_series(K_SERIES_N, K_SERIES)
-    for k, seconds in k_rows:
-        print(f"  k = {k:>6}: {seconds:.6f} с")
+    # Замеры для графика 3
+    k_results = measure_k_series(K_SERIES_N, K_SERIES)
 
-    with open(HERE / "results_08_k.csv", "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
+    with open(HERE / "results_08_k.csv", "w", newline="") as f:
+        writer = csv.writer(f)
         writer.writerow(["k", "seconds"])
-        writer.writerows(k_rows)
+        for k, t in k_results:
+            writer.writerow([k, t])
 
-
+    print("Готово: results_08.csv и results_08_k.csv сохранены в правильном формате.")
 if __name__ == "__main__":
     main()
